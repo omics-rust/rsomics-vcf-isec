@@ -100,3 +100,38 @@ fn shared_matches_bcftools_isec() {
     assert!(bcf_out.status.success());
     assert_eq!(keys(&ours_out.stdout), keys(&bcf_out.stdout));
 }
+
+// bcftools aborts with a non-zero exit ("VCF parse error") on a truncated
+// data line rather than skipping it; a silent drop would ship a wrong
+// intersection, so we reject it too.
+#[test]
+fn malformed_record_fails_loud() {
+    let out = Command::new(ours())
+        .arg("-a")
+        .arg(fixture("malformed_a.vcf"))
+        .arg("-b")
+        .arg(fixture("b.vcf"))
+        .output()
+        .expect("spawn");
+    assert!(
+        !out.status.success(),
+        "expected non-zero exit on a <5-column record"
+    );
+}
+
+// bcftools aborts with "Could not parse the position" on a non-numeric
+// POS rather than matching on the opaque string.
+#[test]
+fn nonnumeric_pos_fails_loud() {
+    let out = Command::new(ours())
+        .arg("-a")
+        .arg(fixture("badpos_a.vcf"))
+        .arg("-b")
+        .arg(fixture("b.vcf"))
+        .output()
+        .expect("spawn");
+    assert!(
+        !out.status.success(),
+        "expected non-zero exit on a non-numeric POS"
+    );
+}
