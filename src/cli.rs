@@ -24,7 +24,11 @@ pub struct Cli {
 
 impl Cli {
     pub fn execute(self) -> Result<()> {
-        let mut out = std::io::stdout().lock();
+        let mut out: Box<dyn std::io::Write> = if self.common.json {
+            Box::new(std::io::sink())
+        } else {
+            Box::new(std::io::stdout().lock())
+        };
         let n = isec(&self.file_a, &self.file_b, &mut out)?;
         eprintln!("{n} shared variants");
         Ok(())
